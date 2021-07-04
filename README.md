@@ -9,7 +9,7 @@ func main() {
         fmt.Println("hello")
     })
     defer stopFn()
-
+    
     // do smth
     time.Sleep(3 * time.Second)
 }
@@ -18,15 +18,15 @@ func main() {
 ## Example 2
 ```go
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	repeat.StartWithContext(ctx, time.Second, func(ctx context.Context) {
-		fmt.Println("hello")
-	})
-
-	// do smth
-	time.Sleep(3 * time.Second)
+    ctx, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    
+    repeat.StartWithContext(ctx, time.Second, func(ctx context.Context) {
+        fmt.Println("hello")
+    })
+    
+    // do smth
+    time.Sleep(3 * time.Second)
 }
 ```
 
