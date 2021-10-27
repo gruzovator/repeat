@@ -1,4 +1,5 @@
 # repeat
+[![Tests](https://github.com/gruzovator/repeat/actions/workflows/go.yml/badge.svg)](https://github.com/gruzovator/repeat/actions/workflows/go.yml)
 
 Set of golang utils to make periodic calls.
 
