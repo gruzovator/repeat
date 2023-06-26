@@ -2,55 +2,50 @@ package repeat_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/gruzovator/repeat"
 )
 
-func TestStart(t *testing.T) {
-	doneCh := make(chan struct{})
-	wantCallsNum := 10
-	callsNum := 0
+func TestRun(t *testing.T) {
+	t.Run("does periodic calls", func(t *testing.T) {
+		ctx, cancelCtx := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancelCtx()
 
-	stopFn := repeat.Start(time.Millisecond, func(ctx context.Context) {
-		callsNum++
-		if callsNum == wantCallsNum {
-			close(doneCh)
+		callsCounter := 0
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			repeat.Run(ctx, time.Millisecond, func(ctx context.Context) {
+				callsCounter++
+			})
+		}()
+		wg.Wait()
+
+		if callsCounter <= 1 {
+			t.Fatalf("no periodic calls: calls number: %d", callsCounter)
 		}
 	})
-	select {
-	case <-doneCh:
-	case <-time.After(time.Duration(wantCallsNum)*time.Millisecond + 10*time.Millisecond):
-	}
-	stopFn()
-	time.Sleep(10 * time.Millisecond)
 
-	if callsNum != 10 {
-		t.Fatalf("calls num: want: %d, got:%d", wantCallsNum, callsNum)
-	}
-}
+	t.Run("fn context is cancelled when Run context is cancelled", func(t *testing.T) {
+		ctx, cancelCtx := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancelCtx()
 
-func TestStartWithContext(t *testing.T) {
-	doneCh := make(chan struct{})
-	wantCallsNum := 10
-	callsNum := 0
-	ctx, ctxCancel := context.WithCancel(context.Background())
+		doneCh := make(chan struct{})
+		go func() {
+			defer close(doneCh)
+			repeat.Run(ctx, time.Millisecond, func(ctx context.Context) {
+				<-ctx.Done()
+			})
+		}()
 
-	repeat.StartWithContext(ctx, time.Millisecond, func(ctx context.Context) {
-		callsNum++
-		if callsNum == wantCallsNum {
-			close(doneCh)
+		select {
+		case <-doneCh:
+		case <-time.After(100 * time.Millisecond):
+			t.Fatalf("fn context is not cancelled")
 		}
 	})
-	select {
-	case <-doneCh:
-	case <-time.After(time.Duration(wantCallsNum)*time.Millisecond + 10*time.Millisecond):
-	}
-	ctxCancel()
-	time.Sleep(10 * time.Millisecond)
-
-	if callsNum != 10 {
-		t.Fatalf("calls num: want: %d, got:%d", wantCallsNum, callsNum)
-	}
 }
